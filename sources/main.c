@@ -11,6 +11,40 @@
 #include <time.h>
 #include "tic_tac_toe.h"
 
+static int isWinner(char symbol)
+{
+    for (int i = 0; i < 3; i++) {
+        if (board[i][0] == symbol && board[i][1] == symbol && board[i][2] == symbol)
+            return 1;
+        if (board[0][i] == symbol && board[1][i] == symbol && board[2][i] == symbol)
+            return 1;
+    }
+    if (board[0][0] == symbol && board[1][1] == symbol && board[2][2] == symbol)
+        return 1;
+    if (board[0][2] == symbol && board[1][1] == symbol && board[2][0] == symbol)
+        return 1;
+    return 0;
+}
+
+static int findWinningMove(char symbol, int *x, int *y)
+{
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (board[i][j] != ' ')
+                continue;
+            board[i][j] = symbol;
+            if (isWinner(symbol)) {
+                board[i][j] = ' ';
+                *x = i;
+                *y = j;
+                return 1;
+            }
+            board[i][j] = ' ';
+        }
+    }
+    return 0;
+}
+
 int checkFreeSpace(void)
 {
     int free = 0;
@@ -43,15 +77,35 @@ void playerMove(void)
 
 void computerMove(void)
 {
-    srand(time(0));
-    int x = 0;
-    int y = 0;
+    int x = -1;
+    int y = -1;
+    const int corners[4][2] = {{0, 0}, {0, 2}, {2, 0}, {2, 2}};
+    const int edges[4][2] = {{0, 1}, {1, 0}, {1, 2}, {2, 1}};
 
-    do {
-        x = rand() % 3;
-        y = rand() % 3;
-    } while (board[x][y] != ' ');
-    board[x][y] = COMPUTER;
+    if (findWinningMove(COMPUTER, &x, &y) || findWinningMove(PLAYER, &x, &y)) {
+        board[x][y] = COMPUTER;
+        return;
+    }
+    if (board[1][1] == ' ') {
+        board[1][1] = COMPUTER;
+        return;
+    }
+    for (int i = 0; i < 4; i++) {
+        x = corners[i][0];
+        y = corners[i][1];
+        if (board[x][y] == ' ') {
+            board[x][y] = COMPUTER;
+            return;
+        }
+    }
+    for (int i = 0; i < 4; i++) {
+        x = edges[i][0];
+        y = edges[i][1];
+        if (board[x][y] == ' ') {
+            board[x][y] = COMPUTER;
+            return;
+        }
+    }
 }
 
 void resetBoard(void)
@@ -104,26 +158,35 @@ int main(void)
 {
     char winner = ' ';
     char reset = ' ';
-    char reset2= ' ';
+    char reset2 = ' ';
+    int moveCount = 0;
+    int first = 0;
+    char currentPlayer = PLAYER;
+
+    srand(time(NULL));
 
     while (reset != 'N') {
         winner = ' ';
         reset = ' ';
         resetBoard();
+        first = rand() % 2;
+        moveCount = 0;
+        currentPlayer = (first == 0) ? PLAYER : COMPUTER;
         while (winner == ' ' && checkFreeSpace() != 0) {
+            printf("Current player: %c\n", currentPlayer);
+            printf("Move count: %d\n", moveCount);
+
             printBoard();
-            playerMove();
+            if (currentPlayer == PLAYER) {
+                playerMove();
+            } else {
+                computerMove();
+            }
+            moveCount++;
             winner = checkWinner();
             if (winner != ' ' || checkFreeSpace() == 0)
-            {
                 break;
-            }
-            computerMove();
-            winner = checkWinner();
-            if (winner != ' ' || checkFreeSpace() == 0)
-            {
-                break;
-            }
+            currentPlayer = (currentPlayer == PLAYER) ? COMPUTER : PLAYER;
         }
         printWinner(winner);
         do {
